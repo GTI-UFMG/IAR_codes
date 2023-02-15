@@ -3,20 +3,16 @@
 
 # # Algoritmo do Bandido
 # 
+# #### Prof. Armando Alves Neto - Introdução ao Aprendizado por Reforço - PPGEE/UFMG
+# 
 # <img src="k-armed_bandit.png" width="400">
 # 
-# Você deve repetidamente escolher uma entre k diferentes ações. Após cada escolha, você recebe uma recompensa numérica (distribuição probabilística) ligada a sua ação e que pode influenciar suas escolhas futuras. Seu objetivo é maximizar a recompensa total esperada ao final de um período fazendo as escolhas certas
+# Você deve repetidamente escolher uma entre $k$ diferentes ações. Após cada escolha, você recebe uma recompensa numérica (distribuição probabilística) ligada a sua ação e que pode influenciar suas escolhas futuras. Seu objetivo é maximizar a recompensa total esperada ao final de um período fazendo as escolhas certas.
 
 # Importando bibliotecas.
 
-# In[5]:
+# In[4]:
 
-
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Introdução ao Aprendizado por Reforço - PPGEE
-# Prof. Armando Alves Neto
-########################################################################
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,9 +20,50 @@ plt.rcParams['figure.figsize'] = (10,5)
 import seaborn as sns
 
 
-# Criando a classe do Bandido.
-# 
-# A função ```selectAction()``` implementa duas versões de escolha da ação, a quase-gulosa (ou $\varepsilon$-gulosa),
+# Criando e inicializando a classe do Bandido.
+
+# In[5]:
+
+
+class Bandit:
+    ##########################################
+    def __init__(self, K, steps, eps=0.0, method='e-greedy'):
+
+        # k bandits
+        self.K = K
+        
+        # testbed
+        self.testbed = [{'mean': 2.0*np.random.uniform(-1.0,1.0), 'std': 0.5} for a in range(K)]
+        
+        # numero de jogadas de 1 episodio
+        self.steps = steps
+        
+        # epsilon-greedy
+        self.eps = eps
+        
+        # constant c do UCB
+        self.c = parameters['c']
+
+        # initialize action values
+        self.Q = np.array([0.0 for a in range(self.K)])
+        self.N = np.array([0.0 for a in range(self.K)])
+
+        # metodo
+        self.method = method
+        
+        # instante de tempo
+        self.t = 0
+        
+        # melhor acao dentre todas
+        self.best_action = np.argmax([t['mean'] for t in self.testbed])
+
+    ##########################################
+    # bandit
+    def bandit(self, A):
+        return np.random.normal(self.testbed[A]['mean'], self.testbed[A]['std'])
+
+
+# A função de classe ```selectAction()``` implementa duas versões de escolha da ação, a quase-gulosa (ou $\varepsilon$-gulosa),
 #  
 # $$
 # A_t = 
@@ -45,40 +82,11 @@ import seaborn as sns
 # In[6]:
 
 
-##########################################
-# k-armed bandit
-##########################################
-class Bandit:
+class Bandit(Bandit):
     ##########################################
-    def __init__(self, K, steps, eps=0.0, method='e-greedy'):
-
-        # k bandits
-        self.K = K
-        # testbed
-        self.testbed = [{'mean': 2.0*np.random.uniform(-1.0,1.0), 'std': 0.5} for a in range(K)]
-        # numero de jogadas de 1 episodio
-        self.steps = steps
-        # epsilon-greedy
-        self.eps = eps
-        # constant c do UCB
-        self.c = parameters['c']
-
-        # initialize action values
-        self.Q = np.array([0.0 for a in range(self.K)])
-        self.N = np.array([0.0 for a in range(self.K)])
-
-        # metodo
-        self.method = method
-        # instante de tempo
-        self.t = 0
-        # melhor acao dentre todas
-        self.best_action = np.argmax([t['mean'] for t in self.testbed])
-
-    ##########################################
-    # e-greedy action selection
     def selectAction(self):
 
-        ##########################################
+        ############################
         if self.method == 'e-greedy':
             # exploration
             if np.random.random() <= self.eps:
@@ -87,19 +95,21 @@ class Bandit:
             else:
                 a = np.argmax(self.Q)
 
-        ##########################################
+        ############################
         if self.method == 'ucb':
             ucb = np.array([self.c*np.sqrt(np.log(self.t)/(self.N[A]+0.01)) for A in range(self.K)])
             a = np.argmax(self.Q + ucb)
+            
         return a
 
-    ##########################################
-    # bandit
-    def bandit(self, A):
-        return np.random.normal(self.testbed[A]['mean'], self.testbed[A]['std'])
 
+# Função da classe que executa um episódio.
+
+# In[7]:
+
+
+class Bandit(Bandit):
     ##########################################
-    # episode
     def runEpisode(self):
         # rewards de um epsodio
         rewards = []
@@ -130,12 +140,9 @@ class Bandit:
 
 # Aqui, com os parâmetros fornecidos, rodamos vários episódios do problema, retornando o comportamento médio destes.
 
-# In[7]:
+# In[8]:
 
 
-##########################################
-# tests
-##########################################
 def main(parameters):
 
     accum_reward = []
@@ -160,10 +167,9 @@ def main(parameters):
 
 # Definindo parâmetros principais do algoritmo.
 
-# In[8]:
+# In[9]:
 
 
-##########################################
 if __name__ == "__main__":
 
     sns.set()
