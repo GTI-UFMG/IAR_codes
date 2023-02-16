@@ -7,25 +7,28 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sn
 from matplotlib.colors import LinearSegmentedColormap
-import string
 
 ##########################################
 # globais
 ##########################################
 GRID_SIZE = 4
-ACTIONS_SPACE = 4
+
+RIGHT = "\u2192"
+UP = "\u2193"
+LEFT = "\u2190"
+DOWN = "\u2191"
 
 ##########################################
 # Grid world environment
 ##########################################
 class Gridworld_Env:
-    def __init__(self, size=GRID_SIZE, m_actions=ACTIONS_SPACE):
+    def __init__(self, size=GRID_SIZE):
 
         # salva tamanho
         self.size = size
 
         # acoes
-        self.actions = [np.array([np.cos(th), np.sin(th)]) for th in np.linspace(0, 2.0*np.pi, m_actions+1)[:-1]]
+        self.actions = [np.array([np.cos(th), np.sin(th)]) for th in np.linspace(0, 2.0*np.pi, 5)[:-1]]
 
         # inicia o mundo
         self.reset()
@@ -48,13 +51,13 @@ class Gridworld_Env:
         # proximo estado
         next_state = np.round((state + action)).astype(int)
         
-        # reward
-        reward = self.getReward()
-        
         # fora dos limites (norte, sul, leste, oeste
         if not ( (0 <= next_state[0] < self.size) and (0 <= next_state[1] < self.size) ):
             next_state = state
 
+        # reward
+        reward = self.getReward()
+        
         # outros
         done = False
         info = {}
@@ -85,12 +88,11 @@ class Gridworld_Env:
             ax.set_title(title)
         W = LinearSegmentedColormap.from_list('w', ["w", "w"], N=256)
         ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
-        sn.heatmap(value, annot=True, fmt=".1f", cmap='RdYlGn', linewidths=1, linecolor="black", cbar=False)
+        sn.heatmap(value, annot=True, fmt=".1f", cmap='crest', linewidths=1, linecolor="black", cbar=False)
 
-        
+        # Plota mapa da politica
         if not (pi is None):
-            # Plota mapa da politica
-            arrows = np.array(["\u2192", "\u2191", "\u2190", "\u2193"])
+            arrows = np.array([UP, RIGHT, DOWN, LEFT])
             labels = arrows[pi]
             labels[value == 0.0] = ''
 
@@ -100,6 +102,6 @@ class Gridworld_Env:
                 ax2.set_title(title)
             W = LinearSegmentedColormap.from_list('w', ["w", "w"], N=256)
             ax2.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
-            sn.heatmap(value, annot=labels, fmt="", cmap='RdYlGn', linewidths=1, linecolor="black", cbar=False)
+            sn.heatmap(value, annot=labels, fmt="", cmap='crest', linewidths=1, linecolor="black", cbar=False)
 
         plt.show()
