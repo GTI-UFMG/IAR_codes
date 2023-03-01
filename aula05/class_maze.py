@@ -11,7 +11,8 @@ import cv2
 from functools import partial
 
 NACTIONS = 8
-FONTSIZE = 16
+FONTSIZE = 12
+MAX_STEPS = 100
 
 ########################################
 # classe do mapa
@@ -34,7 +35,7 @@ class Maze(gym.Env):
         # espaco de atuacao
         self.action_space = spaces.Discrete(NACTIONS)
 
-        # cria mapa		
+        # cria mapa
         self.init2D(image)
 
         # converte estados continuos em discretos
@@ -60,8 +61,6 @@ class Maze(gym.Env):
         # numero de passos
         self.steps = 0
 
-        self.colidiu = False
-
         # posicao aleatória
         self.p = self.getRand()
 
@@ -78,40 +77,55 @@ class Maze(gym.Env):
         th = np.linspace(0, 2.0*np.pi, NACTIONS+1)[:-1]
         u = self.res*np.array([np.cos(th[action]), np.sin(th[action])])
 
-        # distancia antes da acao
-        dist1 = np.linalg.norm(self.p - self.alvo)
-
         # proximo estado
         nextp = self.p + u
 
         # fora dos limites (norte, sul, leste, oeste)
         if ( (self.xlim[0] <= nextp[0] < self.xlim[1]) and (self.ylim[0] <= nextp[1] < self.ylim[1]) ):
             self.p = nextp
-
-        # distancia depois da acao
-        dist2 = np.linalg.norm(self.p - self.alvo)
-
-        # outros
-        done = False
-        info = {}
-
+         
         # reward
-        reward = self.res*(dist1 - dist2)
-        # colisao
-        if self.collision(self.p):
-            reward -= 10.0
-            done = True
-            self.colidiu = True
-        # chegou no alvo
-        if dist2 <= self.res:
-            reward += 20.0
-            done = True
-        if self.steps > 200:
-            done = True
+        reward = self.getReward()
+        
+        # estado terminal?
+        done = self.terminal()
 
         # retorna
-        return self.get_state(self.p), reward, done, info
+        return self.get_state(self.p), reward, done, {}
 
+    ########################################
+    # função de reforço
+    def getReward(self):
+        
+        # reward
+        reward = 0.0
+        
+        # colisao
+        if self.collision(self.p):
+            reward -= MAX_STEPS
+            
+        # chegou no alvo
+        if np.linalg.norm(self.p - self.alvo) <= self.res:
+            reward += 10.0*(MAX_STEPS/self.steps)
+            
+        if self.steps > MAX_STEPS:
+            reward -= MAX_STEPS/10.0
+            
+        return reward
+    
+    ########################################
+    # terminou?
+    def terminal(self):
+        # colisao
+        if self.collision(self.p):
+            return True
+        # chegou no alvo
+        if np.linalg.norm(self.p - self.alvo) <= self.res:
+            return True
+        if self.steps > MAX_STEPS:
+            return True
+        return False
+        
     ########################################
     # ambientes em 2D
     def init2D(self, image):
@@ -138,14 +152,18 @@ class Maze(gym.Env):
     def getRand(self):
         # pega um ponto aleatorio
         while True:
-            qx = np.random.uniform(self.xlim[0], self.xlim[1])
-            qy = np.random.uniform(self.ylim[0], self.ylim[1])
+            if np.random.random() < 0.5:
+                qx = np.random.uniform(self.xlim[0], self.xlim[0]+1)
+                qy = np.random.uniform(self.ylim[0], self.ylim[1])
+            else:
+                qx = np.random.uniform(self.xlim[0], self.xlim[1])
+                qy = np.random.uniform(self.ylim[0], self.ylim[0]+1)
             q = (qx, qy)
             # verifica colisao
             if not self.collision(q):
                 break
 
-        # retorna		
+        # retorna
         return q
 
     ########################################
@@ -164,9 +182,9 @@ class Maze(gym.Env):
             return True
 
         # colisao
-        try:			
+        try:
             if self.mapa.item(lin, col) < 127:
-                return True				
+                return True
         except IndexError:
             None
 
@@ -175,13 +193,7 @@ class Maze(gym.Env):
     ########################################
     # transforma pontos no mundo real para pixels na imagem
     def mts2px(self, q):
-        try:
-            qx = q.x
-            qy = q.y
-        except AttributeError:
-            qx = q[0]
-            qy = q[1]
-
+        qx, qy = q
         # conversao
         px = (qx - self.xlim[0])*self.mx
         py = self.nrow - (qy - self.ylim[0])*self.my
@@ -212,10 +224,7 @@ class Maze(gym.Env):
     def render(self, Q):
 
         # desenha o robo
-        if self.colidiu:
-            plt.plot(self.p[0], self.p[1], 'ms')
-        else:
-            plt.plot(self.p[0], self.p[1], 'rs')
+        plt.plot(self.p[0], self.p[1], 'rs')
 
         # desenha o alvo
         plt.plot(self.alvo[0], self.alvo[1], 'r', marker='x', markersize=20, linewidth=10)
@@ -241,23 +250,16 @@ class Maze(gym.Env):
         Vx = np.array(vx)
         Vy = np.array(vy)
         M = np.hypot(Vx, Vy)
-        plt.gca().quiver(XX, YY, Vx, Vy, M, color='k', angles='xy', scale_units='xy', scale=2.0)
+        plt.gca().quiver(XX, YY, Vx, Vy, M, color='k', angles='xy', scale_units='xy', scale=2.0, headwidth=5)
 
-        try:
-            plt.xlabel(r"$x$[m]", fontsize=FONTSIZE)
-            plt.ylabel(r"$y$[m]", fontsize=FONTSIZE)
-        except:
-            plt.xlabel("x[m]", fontsize=FONTSIZE)
-            plt.ylabel("y[m]", fontsize=FONTSIZE)
-
-        plt.xticks(fontsize=FONTSIZE)
-        plt.yticks(fontsize=FONTSIZE)
+        plt.xticks([], fontsize=FONTSIZE)
+        plt.yticks([], fontsize=FONTSIZE)
         plt.xlim(self.xlim)
         plt.ylim(self.ylim)
-        plt.show()
         plt.box(True)
+        plt.show()
         plt.pause(.1)
 
     ########################################
     def __del__(self):
-        print ('Program ended')
+        None
