@@ -106,7 +106,7 @@ class Maze(gym.Env):
             
         # chegou no alvo
         if np.linalg.norm(self.p - self.alvo) <= self.res:
-            reward += 10.0*(MAX_STEPS/self.steps)
+            reward += 20.0*(MAX_STEPS/self.steps)
             
         if self.steps > MAX_STEPS:
             reward -= MAX_STEPS/10.0
@@ -250,7 +250,7 @@ class Maze(gym.Env):
         Vx = np.array(vx)
         Vy = np.array(vy)
         M = np.hypot(Vx, Vy)
-        plt.gca().quiver(XX, YY, Vx, Vy, M, color='k', angles='xy', scale_units='xy', scale=2.0, headwidth=5)
+        plt.gca().quiver(XX, YY, Vx, Vy, M, color='k', angles='xy', scale_units='xy', scale=2.0, headwidth=10)
 
         plt.xticks([], fontsize=FONTSIZE)
         plt.yticks([], fontsize=FONTSIZE)
