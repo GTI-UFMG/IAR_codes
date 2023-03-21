@@ -50,14 +50,14 @@ class Gridworld_Env:
 
         # proximo estado
         next_state = np.round((state + action)).astype(int)
-        
+
         # fora dos limites (norte, sul, leste, oeste
         if not ( (0 <= next_state[0] < self.size) and (0 <= next_state[1] < self.size) ):
             next_state = state
 
         # reward
         reward = self.getReward()
-        
+
         # outros
         done = False
         info = {}
@@ -70,7 +70,7 @@ class Gridworld_Env:
                 done = True
 
         next_state = tuple(next_state[:])
-        
+
         # retorna
         return next_state, reward, done, info
 
@@ -80,14 +80,16 @@ class Gridworld_Env:
         return -1.0
 
     ##########################################
-    def render(self, value, pi=None, title=None):
+    def render(self, value, pi=None):
 
         # Plota mapa de valor
-        fig, ax = plt.subplots(figsize=(self.size, self.size))
-        if title is not None:
-            ax.set_title(title)
+        fig = plt.subplots(figsize=(2*self.size, self.size))
+
+        # funcao valor
+        plt.subplot(1, 2, 1)
+        plt.gca().set_title(r'$V(s)$')
         W = LinearSegmentedColormap.from_list('w', ["w", "w"], N=256)
-        ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
+        plt.gca().grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
         sn.heatmap(value, annot=True, fmt=".1f", cmap='crest', linewidths=1, linecolor="black", cbar=False)
 
         # Plota mapa da politica
@@ -97,11 +99,10 @@ class Gridworld_Env:
             labels[value == 0.0] = ''
 
             # Plota valor
-            fig2, ax2 = plt.subplots(figsize=(self.size, self.size))
-            if title is not None:
-                ax2.set_title(title)
+            plt.subplot(1, 2, 2)
+            plt.gca().set_title(r'$\pi(s) \approx \pi_*$')
             W = LinearSegmentedColormap.from_list('w', ["w", "w"], N=256)
-            ax2.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
+            plt.gca().grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
             sn.heatmap(value, annot=labels, fmt="", cmap='crest', linewidths=1, linecolor="black", cbar=False)
 
         plt.show()
