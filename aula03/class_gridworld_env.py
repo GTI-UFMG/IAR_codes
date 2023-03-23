@@ -43,6 +43,10 @@ class Gridworld_Env:
     def reset(self):
         # estados terminais
         self.terminais = [np.array([0,0]), np.array([self.size-1, self.size-1])]
+        
+        # retorna estado aleatório
+        state = np.random.choice(self.size, 2)
+        return tuple(state[:])
 
     ##########################################
     # step
@@ -96,7 +100,9 @@ class Gridworld_Env:
         if not (pi is None):
             arrows = np.array([UP, RIGHT, DOWN, LEFT])
             labels = arrows[pi]
-            labels[value == 0.0] = ''
+            # sem acoes nos terminais
+            for t in self.terminais:
+                labels[tuple(t[:])] = ''
 
             # Plota valor
             plt.subplot(1, 2, 2)
