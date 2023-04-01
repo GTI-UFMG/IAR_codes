@@ -4,13 +4,12 @@
 ########################################################################
 import gym
 from gym import spaces
-
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 from functools import partial
 
-NACTIONS = 8
+NACTIONS = 9
 FONTSIZE = 12
 MAX_STEPS = 100
 
@@ -20,7 +19,7 @@ MAX_STEPS = 100
 class Maze(gym.Env):
     ########################################
     # construtor
-    def __init__(self, xlim, ylim, res, image):
+    def __init__(self, xlim=np.array([0.0, 10.0]), ylim=np.array([0.0, 10.0]), res=0.4, img='cave.png', alvo=np.array([9.5, 9.5])):
 
         # salva o tamanho geometrico da imagem em metros
         self.xlim = xlim
@@ -31,12 +30,12 @@ class Maze(gym.Env):
 
         ns = int(np.max([np.abs(np.diff(self.xlim)), np.abs(np.diff(self.ylim))])/res)
         self.num_states = [ns, ns]
-
+        
         # espaco de atuacao
         self.action_space = spaces.Discrete(NACTIONS)
 
         # cria mapa
-        self.init2D(image)
+        self.init2D(img)
 
         # converte estados continuos em discretos
         lower_bounds = [self.xlim[0], self.ylim[0]]
@@ -44,7 +43,7 @@ class Maze(gym.Env):
         self.get_state = partial(self.obs_to_state, self.num_states, lower_bounds, upper_bounds)
 
         # alvo
-        self.alvo = np.array([9.5, 9.5])
+        self.alvo = alvo
 
     ########################################
     # seed
@@ -67,15 +66,29 @@ class Maze(gym.Env):
         return self.get_state(self.p)
 
     ########################################
+    # converte acão para direção
+    def actionU(self, action):
+        
+        # action 0 faz ficar parado
+        if action == 0:
+            r = 0.0
+        else:
+            r = self.res
+        
+        action -= 1
+        th = np.linspace(0.0, 2.0*np.pi, NACTIONS)[:-1]
+        
+        return r*np.array([np.cos(th[action]), np.sin(th[action])])
+        
+    ########################################
     # step -> new_observation, reward, done, info = env.step(action)
     def step(self, action):
 
         # novo passo
         self.steps += 1
-
+        
         # seleciona acao
-        th = np.linspace(0, 2.0*np.pi, NACTIONS+1)[:-1]
-        u = self.res*np.array([np.cos(th[action]), np.sin(th[action])])
+        u = self.actionU(action)
 
         # proximo estado
         nextp = self.p + u
@@ -102,14 +115,14 @@ class Maze(gym.Env):
         
         # colisao
         if self.collision(self.p):
-            reward -= MAX_STEPS
+            reward -= MAX_STEPS/2.0
             
         # chegou no alvo
         if np.linalg.norm(self.p - self.alvo) <= self.res:
-            reward += 20.0*(MAX_STEPS/self.steps)
+            reward += MAX_STEPS
             
         if self.steps > MAX_STEPS:
-            reward -= MAX_STEPS/10.0
+            reward -= MAX_STEPS/5.0
             
         return reward
     
@@ -152,12 +165,8 @@ class Maze(gym.Env):
     def getRand(self):
         # pega um ponto aleatorio
         while True:
-            if np.random.random() < 0.5:
-                qx = np.random.uniform(self.xlim[0], self.xlim[0]+1)
-                qy = np.random.uniform(self.ylim[0], self.ylim[1])
-            else:
-                qx = np.random.uniform(self.xlim[0], self.xlim[1])
-                qy = np.random.uniform(self.ylim[0], self.ylim[0]+1)
+            qx = np.random.uniform(self.xlim[0], self.xlim[1])
+            qy = np.random.uniform(self.ylim[0], self.ylim[1])
             q = (qx, qy)
             # verifica colisao
             if not self.collision(q):
@@ -222,7 +231,7 @@ class Maze(gym.Env):
     ########################################
     # desenha a imagem distorcida em metros
     def render(self, Q):
-
+        
         # desenha o robo
         plt.plot(self.p[0], self.p[1], 'rs')
 
@@ -230,7 +239,7 @@ class Maze(gym.Env):
         plt.plot(self.alvo[0], self.alvo[1], 'r', marker='x', markersize=20, linewidth=10)
 
         # plota mapa real e o mapa obsevado
-        plt.imshow(self.mapa, cmap='gray', extent=[self.xlim[0], self.xlim[1], self.ylim[0], self.ylim[1]])
+        plt.imshow(self.mapa, cmap='gray', extent=[self.xlim[0], self.xlim[1], self.ylim[0], self.ylim[1]], alpha=0.5)
 
         # vector field
         m = self.num_states[0]
@@ -238,24 +247,26 @@ class Maze(gym.Env):
         ym = np.linspace(self.ylim[0], self.ylim[1], m)
         XX, YY = np.meshgrid(xm, ym)
 
-        th = np.linspace(0, 2.0*np.pi, NACTIONS+1)[:-1]
+        th = np.linspace(0.0, 2.0*np.pi, NACTIONS)[:-1]
         vx = []
         vy = []
         for x in xm:
             for y in ym:
                 S = self.get_state(np.array([y, x]))
-                a = Q[S, :].argmax()
-                vx.append(self.res*np.cos(th[a]))
-                vy.append(self.res*np.sin(th[a]))
+                # plota a melhor ação                
+                u = self.actionU(Q[S, :].argmax())
+                vx.append(u[0])
+                vy.append(u[1])
+                    
         Vx = np.array(vx)
         Vy = np.array(vy)
         M = np.hypot(Vx, Vy)
-        plt.gca().quiver(XX, YY, Vx, Vy, M, color='k', angles='xy', scale_units='xy', scale=2.0, headwidth=10)
+        plt.gca().quiver(XX, YY, Vx, Vy, M, cmap='crest', angles='xy', scale_units='xy', scale=1.5, headwidth=5)
 
         plt.xticks([], fontsize=FONTSIZE)
         plt.yticks([], fontsize=FONTSIZE)
-        plt.xlim(self.xlim)
-        plt.ylim(self.ylim)
+        plt.xlim(self.xlim + 0.05*np.abs(np.diff(self.xlim))*np.array([-1., 1.]))
+        plt.ylim(self.ylim + 0.05*np.abs(np.diff(self.ylim))*np.array([-1., 1.]))
         plt.box(True)
         plt.show()
         plt.pause(.1)
