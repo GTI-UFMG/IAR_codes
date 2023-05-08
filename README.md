@@ -8,3 +8,4 @@
 - Aula 06: Métodos de solução aproximada: aproximação da função valor
 - Aula 07: Introdução ao Aprendizado por Reforço Profundo
 - Aula 08: Métodos de gradiente de política
+- Aula 09: Métodos em espaços de ações contínuos (DDPG)
