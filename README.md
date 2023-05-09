@@ -1,5 +1,6 @@
 # IAR_codes
 ## Códigos da disciplina de Introdução ao Aprendizado por Reforço.
+### Programa de Pós-graduação em Engenharia Elétrica (UFMG)
 
 - Aula 02: O problema do bandido
 - Aula 03: Processo de Decisão de Markov e Programação Dinâmica
