@@ -2,8 +2,12 @@
 # Introdução ao Aprendizado por Reforço - PPGEE
 # Prof. Armando Alves Neto
 ########################################################################
-import gym
-from gym import spaces
+try:
+    import gymnasium as gym
+    from gymnasium import spaces
+except:
+    import gym
+    from gym import spaces
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
