@@ -1,5 +1,4 @@
-# IAR_codes
-## Códigos da disciplina de Introdução ao Aprendizado por Reforço.
+## Códigos da disciplina de Introdução ao Aprendizado por Reforço (EEE935).
 ### Programa de Pós-graduação em Engenharia Elétrica (UFMG)
 
 - Aula 02: O problema do bandido
