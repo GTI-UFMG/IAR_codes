@@ -1,4 +1,4 @@
-## Códigos da disciplina de Introdução ao Aprendizado por Reforço (EEE935).
+## Códigos da disciplina de Introdução ao Aprendizado por Reforço (EEE935)
 ### Programa de Pós-graduação em Engenharia Elétrica (UFMG)
 
 - Aula 02: O problema do bandido
