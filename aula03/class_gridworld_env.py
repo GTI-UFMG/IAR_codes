@@ -5,8 +5,8 @@
 ########################################################################
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sn
 from matplotlib.colors import LinearSegmentedColormap
+import seaborn as sn
 
 ##########################################
 # globais
