@@ -8,14 +8,14 @@ try:
 except:
     import gym
     from gym import spaces
-import matplotlib.pyplot as plt
 import numpy as np
-import cv2
 from functools import partial
+import pygame
 
+# Globais
 NACTIONS = 9
-FONTSIZE = 12
 MAX_STEPS = 100
+SCREEN_SIZE = 500
 
 ########################################
 # classe do mapa
@@ -23,7 +23,7 @@ MAX_STEPS = 100
 class Maze(gym.Env):
     ########################################
     # construtor
-    def __init__(self, xlim=np.array([0.0, 10.0]), ylim=np.array([0.0, 10.0]), res=0.4, img='cave.png', alvo=np.array([9.5, 9.5])):
+    def __init__(self, xlim=np.array([0.0, 10.0]), ylim=np.array([0.0, 10.0]), res=0.4, img='labirinto.png', alvo=np.array([9.5, 9.5]), render=False):
 
         # salva o tamanho geometrico da imagem em metros
         self.xlim = xlim
@@ -38,9 +38,6 @@ class Maze(gym.Env):
         # espaco de atuacao
         self.action_space = spaces.Discrete(NACTIONS)
 
-        # cria mapa
-        self.init2D(img)
-
         # converte estados continuos em discretos
         lower_bounds = [self.xlim[0], self.ylim[0]]
         upper_bounds = [self.xlim[1], self.ylim[1]]
@@ -48,7 +45,58 @@ class Maze(gym.Env):
 
         # alvo
         self.alvo = alvo
+        
+        # renderizar
+        self.render_env = render
+        
+        # cria mapa
+        pygame.init()
+        pygame.display.set_mode((1, 1))  # Inicializa com uma janelinha mínima
+        self.init2D(img)
+        pygame.quit()
+        
+        # Inicializa pygame se necessário
+        if self.render_env:
+            pygame.init()
+            self.screen_size = (SCREEN_SIZE, SCREEN_SIZE)
+            self.screen = pygame.display.set_mode(self.screen_size)
+            self.clock = pygame.time.Clock()
+            pygame.display.set_caption("Labirinto")
+        
+            # Converte o mapa para uma imagem pygame
+            mapa_norm = self.mapa.astype(np.uint8)  # inverte e escala pra 0-255
+            mapa_rgb = np.stack([mapa_norm]*3, axis=-1)  # gray -> RGB
+            mapa_surface = pygame.surfarray.make_surface(np.transpose(mapa_rgb, (1, 0, 2)))
+            self.map_surface = pygame.transform.scale(mapa_surface, self.screen_size)
 
+    ########################################
+    # ambientes em 2D
+    def init2D(self, image):
+        
+        # Carrega a imagem em escala de cinza
+        I_surface = pygame.image.load(image).convert()
+        I_array = pygame.surfarray.pixels3d(I_surface)
+        
+        # Transpõe para (altura, largura, canais), como no OpenCV
+        I_array = I_array.transpose(1, 0, 2)
+
+        # Converte para escala de cinza (média dos canais RGB)
+        I_gray = np.mean(I_array, axis=2).astype(np.uint8)
+
+        # Pega o número de linhas e colunas
+        self.nrow = I_gray.shape[0]
+        self.ncol = I_gray.shape[1]
+
+        # Binariza a imagem (limiar 127)
+        I_binary = np.where(I_gray > 127, 255, 0).astype(np.uint8)
+
+        # Inverte a imagem no eixo Y
+        self.mapa = np.flipud(I_binary)
+
+        # Parâmetros de conversão (como no original)
+        self.mx = float(self.ncol) / float(self.xlim[1] - self.xlim[0])
+        self.my = float(self.nrow) / float(self.ylim[1] - self.ylim[0])
+        
     ########################################
     # seed
     ########################################
@@ -66,6 +114,9 @@ class Maze(gym.Env):
 
         # posicao aleatória
         self.p = self.getRand()
+        
+        # trajetoria
+        self.traj = [self.p]
 
         return self.get_state(self.p)
 
@@ -98,8 +149,11 @@ class Maze(gym.Env):
         nextp = self.p + u
 
         # fora dos limites (norte, sul, leste, oeste)
-        if ( (self.xlim[0] <= nextp[0] < self.xlim[1]) and (self.ylim[0] <= nextp[1] < self.ylim[1]) ):
+        if ( (self.xlim[0] <= nextp[0] <= self.xlim[1]) and (self.ylim[0] <= nextp[1] <= self.ylim[1]) ):
             self.p = nextp
+            
+        # trajetoria
+        self.traj.append(self.p)
          
         # reward
         reward = self.getReward()
@@ -142,27 +196,6 @@ class Maze(gym.Env):
         if self.steps > MAX_STEPS:
             return True
         return False
-        
-    ########################################
-    # ambientes em 2D
-    def init2D(self, image):
-
-        # le a imagem
-        I = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
-
-        # linhas e colunas da imagem
-        self.nrow = I.shape[0]
-        self.ncol = I.shape[1]
-
-        # binariza imagem
-        (thresh, I) = cv2.threshold(I, 127, 255, cv2.THRESH_BINARY)
-
-        # inverte a imagem em y
-        self.mapa = cv2.flip(I, 0)
-
-        # parametros de conversao
-        self.mx = float(self.ncol) / float(self.xlim[1] - self.xlim[0])
-        self.my = float(self.nrow) / float(self.ylim[1] - self.ylim[0])
 
     ########################################
     # pega ponto aleatorio no voronoi
@@ -231,49 +264,87 @@ class Maze(gym.Env):
         if state < 0:
             state = 0
         return state
-
+    
+    ########################################
+    # Mapeamento de coordenadas reais para pixels
+    def world_to_screen(self, pos):
+        x = int((pos[0] - self.xlim[0]) / (self.xlim[1] - self.xlim[0]) * self.screen_size[0])
+        y = int(self.screen_size[1] - (pos[1] - self.ylim[0]) / (self.ylim[1] - self.ylim[0]) * self.screen_size[1])
+        return (x, y)
+        
     ########################################
     # desenha a imagem distorcida em metros
-    def render(self, Q):
+    def render(self, Q, arrow_size=0.5, target_size=5, robot_size=10):
         
-        # desenha o robo
-        plt.plot(self.p[0], self.p[1], 'rs')
-
-        # desenha o alvo
-        plt.plot(self.alvo[0], self.alvo[1], 'r', marker='x', markersize=20, linewidth=10)
-
-        # plota mapa real e o mapa obsevado
-        plt.imshow(self.mapa, cmap='gray', extent=[self.xlim[0], self.xlim[1], self.ylim[0], self.ylim[1]], alpha=0.5)
-
-        # vector field
+        if not self.render_env:
+            return
+        
+        # Trata eventos para manter a janela viva
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()        
+        
+        # Desenha o mapa
+        self.screen.blit(self.map_surface, (0, 0))
+        
+        # Desenha o alvo (um X)
+        alvo_pos = self.world_to_screen(self.alvo)
+        pygame.draw.line(self.screen, (0, 200, 0), (alvo_pos[0] - target_size, alvo_pos[1] - target_size), (alvo_pos[0] + target_size, alvo_pos[1] + target_size), 5)
+        pygame.draw.line(self.screen, (0, 200, 0), (alvo_pos[0] - target_size, alvo_pos[1] + target_size), (alvo_pos[0] + target_size, alvo_pos[1] - target_size), 5)
+        
+        # Desenha trajetoria do robo
+        for p in self.traj:
+            pygame.draw.rect(self.screen, (155, 0, 200), (*self.world_to_screen(p), 0.5*robot_size, 0.5*robot_size))
+        # Desenha o robô
+        pygame.draw.rect(self.screen, (0, 0, 255), (*self.world_to_screen(self.p), robot_size, robot_size))
+        
+        # Desenha o campo vetorial
         m = self.num_states[0]
         xm = np.linspace(self.xlim[0], self.xlim[1], m)
         ym = np.linspace(self.ylim[0], self.ylim[1], m)
-        XX, YY = np.meshgrid(xm, ym)
-
-        th = np.linspace(0.0, 2.0*np.pi, NACTIONS)[:-1]
-        vx = []
-        vy = []
         for x in xm:
             for y in ym:
-                S = self.get_state(np.array([y, x]))
-                # plota a melhor ação                
-                u = self.actionU(Q[S, :].argmax())
-                vx.append(u[0])
-                vy.append(u[1])
-                    
-        Vx = np.array(vx)
-        Vy = np.array(vy)
-        M = np.hypot(Vx, Vy)
-        plt.gca().quiver(XX, YY, Vx, Vy, M, cmap='crest', angles='xy', scale_units='xy', scale=1.5, headwidth=5)
+                # verifica colisao
+                if self.collision((x, y)):
+                    continue
+                # desenha a seta
+                S = self.get_state(np.array([x, y]))
+                u = arrow_size*self.actionU(Q[S, :].argmax())
+                start = self.world_to_screen([x, y])
+                end = self.world_to_screen([x + u[0], y + u[1]])
+                if np.linalg.norm(u) > 0:
+                    self.draw_arrow(self.screen, (0, 100, 150), start, end)
 
-        plt.xticks([], fontsize=FONTSIZE)
-        plt.yticks([], fontsize=FONTSIZE)
-        plt.xlim(self.xlim + 0.05*np.abs(np.diff(self.xlim))*np.array([-1., 1.]))
-        plt.ylim(self.ylim + 0.05*np.abs(np.diff(self.ylim))*np.array([-1., 1.]))
-        plt.box(True)
-        plt.show()
-        plt.pause(.1)
+        # Atualiza a tela
+        pygame.display.flip()
+        self.clock.tick(30)  # FPS
+     
+    ########################################
+    def draw_arrow(self, surface, color, start, end, width=2, head_size=3):
+        # Linha principal
+        pygame.draw.line(surface, color, start, end, width)
+
+        # Vetor da seta
+        dx = end[0] - start[0]
+        dy = end[1] - start[1]
+        angle = np.arctan2(dy, dx)
+
+        # Cálculo da cabeça da seta (duas linhas formando um "V")
+        sin_a = np.sin(angle)
+        cos_a = np.cos(angle)
+
+        left = (
+            end[0] - head_size * cos_a + head_size * sin_a,
+            end[1] - head_size * sin_a - head_size * cos_a
+        )
+        right = (
+            end[0] - head_size * cos_a - head_size * sin_a,
+            end[1] - head_size * sin_a + head_size * cos_a
+        )
+
+        pygame.draw.line(surface, color, end, left, width)
+        pygame.draw.line(surface, color, end, right, width)
 
     ########################################
     def __del__(self):
