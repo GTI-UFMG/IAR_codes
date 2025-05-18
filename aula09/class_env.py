@@ -5,7 +5,6 @@ try:
 except:
     import gym
     from gym import spaces
-#gym.logger.set_level(40)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,9 +18,11 @@ MAX_EV = cc.MAX_EV
 MAX_EA = cc.MAX_EA
 VELMAX = cc.ENV['VELMAX']
 MAX_U  = cc.CAR['UMAX']
-DT = cc.ENV['DT']
 
-TMAX = 40.0
+INTERACOES = 4
+DT = INTERACOES*cc.ENV['DT']
+
+TMAX = 30.0
 LINEW = 1.5
 
 ########################################
@@ -32,7 +33,7 @@ class PlatoonEnv(gym.Env):
     # construtor
     ########################################
     def __init__(self):
-        
+
         super(PlatoonEnv, self).__init__()
 
         # current episodes
@@ -44,10 +45,10 @@ class PlatoonEnv(gym.Env):
         # state box
         self.state_list_low  = np.array([-MAX_EP, -MAX_EV, -MAX_EA])
         self.state_list_high = np.array([ MAX_EP,  MAX_EV,  MAX_EA])
-        self.observation_space = spaces.Box(low = self.state_list_low, high = self.state_list_high, dtype=np.float32)
+        self.observation_space = spaces.Box(low = self.state_list_low, high = self.state_list_high, dtype=np.float64)
 
         # action box
-        self.action_space = spaces.Box(low=-MAX_U,  high=MAX_U,  shape=(1,), dtype=np.float32)
+        self.action_space = spaces.Box(low=-MAX_U,  high=MAX_U,  shape=(1,), dtype=np.float64)
 
     ########################################
     # seed
@@ -136,7 +137,7 @@ class PlatoonEnv(gym.Env):
         self.cars[0].setLeader(self.leaderAccel)
 
         # atualizando modelo
-        for _ in range(4):
+        for _ in range(INTERACOES):
             self.cars[0].model()
             self.cars[1].model(u = self.u)
 
@@ -168,15 +169,8 @@ class PlatoonEnv(gym.Env):
         erro = np.array(p1) - np.array(p0) + np.array(cc.DELTA)
         plt.plot(t0, erro, color = self.cars[1].cor, linewidth=LINEW)
         plt.plot(t0, 0.0*erro, 'k:', linewidth=LINEW)
-        plt.ylabel('Espaçamento[m]')
-
-    ########################################
-    def plotPos(self):
-        for c in self.cars:
-            t0 = [traj['t'] for traj in c.traj]
-            vx = [traj['p'] for traj in c.traj]
-            plt.plot(t0, vx, color = c.cor, linewidth=LINEW, label='%i' % c.id)
-        plt.ylabel('Posição[m/s]')
+        plt.ylim([-MAX_EP, MAX_EP])
+        plt.ylabel(r'Espaçamento$[m]$')
 
     ########################################
     def plotVel(self):
@@ -184,7 +178,7 @@ class PlatoonEnv(gym.Env):
             t0 = [traj['t'] for traj in c.traj]
             vx = [traj['v'] for traj in c.traj]
             plt.plot(t0, vx, color = c.cor, linewidth=LINEW, label='%i' % c.id)
-        plt.ylabel('Velocidade[m/s]')
+        plt.ylabel(r'$v[m/s]$')
 
     ########################################
     def plotU(self):
@@ -194,7 +188,7 @@ class PlatoonEnv(gym.Env):
             plt.plot(t0, u, color = c.cor, linewidth=LINEW)
             plt.plot(t0,  MAX_U*np.ones(len(t0)), 'k:', linewidth=LINEW)
             plt.plot(t0, -MAX_U*np.ones(len(t0)), 'k:', linewidth=LINEW)
-        plt.ylabel('u[m/s^2]')
+        plt.ylabel(r'$u[m/s^2]$')
 
     ########################################
     # desenha

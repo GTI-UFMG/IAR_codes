@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import colorsys
 import numpy as np
 
 ########################################
@@ -140,11 +139,13 @@ class Car:
         a3 = self.getAccel(v3)
         v4 = self.v + a3*self.dt
         a4 = self.getAccel(v4)
+        
         # aceleracao translacional
         self.a = (a1 + 2.0*a2 + 2.0*a3 + a4)/6.0
 
-        # velocidade translacional
-        self.v += self.a*self.dt
+        # velocidade translacional (só pra frente)
+        self.v = (v1 + 2.0*v2 + 2.0*v3 + v4)/6.0
+        self.v = np.max([0.0, self.v])
 
         # robo nao anda de re
         self.p += self.v*self.dt + 0.5*self.a*(self.dt**2.0)
@@ -232,7 +233,7 @@ class Car:
         if self.id == 0:
             self.cor = 'k'
         else:
-            self.cor = colorsys.hsv_to_rgb(self.id/float(self.n-1), .8, .8)
+            self.cor = 'r'
 
     ########################################
     # termina a classe
