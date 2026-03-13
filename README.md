@@ -5,6 +5,10 @@ Autor: Armando Alves Neto\
 Programa de Pós-graduação em Engenharia Elétrica (UFMG)\
 Departamento de Engenharia Eletrônica
 
+<p align="center">
+  <img height="200px" src="./screenshots/rotulo.jpg">
+</p>
+
 Esta disciplina apresenta conceitos fundamentais e técnicas da área de Aprendizado por Reforço (um dos principais paradigmas do Aprendizado de Máquina) para aplicação em (mas não apenas) problemas de Controle, Automação e Robótica. Ao final do curso, espera-se que os alunos sejam capazes de compreender e implementar técnicas recentes publicadas na literatura científica, tornando-se aptos a desenvolver pesquisa na área.
 
 - Aula 02: O problema do bandido
