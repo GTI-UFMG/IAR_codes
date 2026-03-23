@@ -13,10 +13,10 @@ import seaborn as sn
 ##########################################
 GRID_SIZE = 4
 
+UP = "\u2191"
 RIGHT = "\u2192"
-UP = "\u2193"
+DOWN = "\u2193"
 LEFT = "\u2190"
-DOWN = "\u2191"
 
 ##########################################
 # Grid world environment
@@ -83,30 +83,57 @@ class Gridworld_Env:
     ##########################################
     def render(self, value, pi=None):
 
-        # Plota mapa de valor
-        if not (pi is None):
-            fig = plt.subplots(figsize=(2*self.size, self.size))
-            plt.subplot(1, 2, 1)
+        if pi is not None:
+            fig, ax = plt.subplots(1, 2, figsize=(2*self.size, self.size), facecolor='none')
         else:
-            fig = plt.subplots(figsize=(self.size, self.size))
+            fig, ax = plt.subplots(1, 1, figsize=(self.size, self.size), facecolor='none')
+            ax = [ax]  # para manter o mesmo padrão de acesso
 
-        # funcao valor
-        sn.heatmap(value, annot=True, fmt=".1f", cmap='crest', linewidths=1, linecolor="black", cbar=False, square=True)
-        plt.gca().set_title(r'$V(s)$')
+        ############################
+        # mapa de valor
+        sn.heatmap(
+            value,
+            annot=True,
+            fmt=".1f",
+            cmap="crest",
+            linewidths=1,
+            linecolor="black",
+            cbar=False,
+            square=True,
+            ax=ax[0]
+        )
+        ax[0].set_title(r"$V(s)$")
+        ax[0].tick_params(left=False, bottom=False)
+    
+        for spine in ax[0].spines.values():
+            spine.set_visible(False)
 
+        ############################
         # Plota mapa da politica
         if not (pi is None):
-            arrows = np.array([UP, RIGHT, DOWN, LEFT])
-            labels = arrows[pi]
-            # sem acoes nos terminais
-            for t in self.terminais:
-                labels[tuple(t[:])] = ''
+            arrows = np.array([UP, RIGHT, DOWN, LEFT], dtype=object)
+            labels = arrows[pi].copy()
+    
+            for t in self.terminal_states:
+                labels[tuple(t)] = ""
+    
+            sn.heatmap(
+                value,
+                annot=labels,
+                fmt="",
+                cmap="crest",
+                linewidths=1,
+                linecolor="black",
+                cbar=False,
+                square=True,
+                ax=ax[1]
+            )
+            ax[1].set_title(r"$\pi(s)\approx\pi_*$")
+            ax[1].tick_params(left=False, bottom=False)
+    
+            for spine in ax[1].spines.values():
+                spine.set_visible(False)
 
-            # Plota valor
-            plt.subplot(1, 2, 2)
-            plt.gca().set_title(r'$\pi(s) \approx \pi_*$')
-            W = LinearSegmentedColormap.from_list('w', ["w", "w"], N=256)
-            plt.gca().grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
-            sn.heatmap(value, annot=labels, fmt="", cmap='crest', linewidths=1, linecolor="black", cbar=False)
-
+        fig.patch.set_alpha(0)
+        plt.tight_layout()
         plt.show()
