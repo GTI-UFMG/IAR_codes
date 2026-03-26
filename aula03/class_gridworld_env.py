@@ -5,7 +5,6 @@
 ########################################################################
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
 import seaborn as sn
 
 ##########################################
@@ -22,118 +21,122 @@ LEFT = "\u2190"
 # Grid world environment
 ##########################################
 class Gridworld_Env:
-    def __init__(self, size=GRID_SIZE):
+	def __init__(self, size=GRID_SIZE):
 
-        # salva tamanho
-        self.size = size
+		# salva tamanho
+		self.size = size
 
-        # acoes
-        self.actions = [
-                           np.array([-1,  0]),  # up
-                           np.array([ 0,  1]),   # right
-                           np.array([ 1,  0]),   # down
-                           np.array([ 0, -1])   # left
-                       ]
+		# acoes
+		self.actions = [
+						   np.array([-1,  0]),  # up
+						   np.array([ 0,  1]),   # right
+						   np.array([ 1,  0]),   # down
+						   np.array([ 0, -1])   # left
+					   ]
 
-        # inicia o mundo
-        self.reset()
+		# inicia o mundo
+		self.reset()
 
-    ##########################################
-    # tamanho do grid quadrado
-    def getSize(self):
-        return self.size
+	##########################################
+	# tamanho do grid quadrado
+	def getSize(self):
+		return self.size
 
-    ##########################################
-    # reseta o grid
-    def reset(self):
-        # estados terminais
-        self.terminal_states = {(0, 0), (self.size-1, self.size-1)}
-        
-        # retorna estado aleatório
-        state = np.random.choice(self.size, 2)
+	##########################################
+	# reseta o grid
+	def reset(self):
+		# estados terminais
+		self.terminal_states = {(0, 0), (self.size-1, self.size-1)}
+		
+		# retorna estado aleatório
+		state = np.random.choice(self.size, 2)
 
-        self.state = tuple(state)
-        return self.state
+		self.state = tuple(state)
+		return self.state
 
-    ##########################################
-    # step
-    def step(self, state, action):
+	##########################################
+	# step
+	def step(self, state, action):
 
-        # proximo estado
-        next_state = np.round((state + action)).astype(int)
+		# proximo estado
+		next_state = np.round((state + action)).astype(int)
 
-        # fora dos limites (norte, sul, leste, oeste
-        if not ( (0 <= next_state[0] < self.size) and (0 <= next_state[1] < self.size) ):
-            next_state = state
+		# fora dos limites (norte, sul, leste, oeste
+		if not ( (0 <= next_state[0] < self.size) and (0 <= next_state[1] < self.size) ):
+			next_state = state
 
-        # reward
-        reward = self.getReward()
+		# reward
+		reward = self.getReward()
 
-        # eh um estado final?
-        if state in self.terminal_states:
-            return tuple(state), 0.0, True, {'Terminou'}
-        else:
-            return tuple(next_state), reward, False, {}
+		# eh um estado final?
+		if state in self.terminal_states:
+			return tuple(state), 0.0, True, {'Terminou'}
+		else:
+			return tuple(next_state), reward, False, {}
 
-    ##########################################
-    # reforço
-    def getReward(self):
-        return -1.0
+	##########################################
+	# reforço
+	def getReward(self):
+		return -1.0
 
-    ##########################################
-    def render(self, value, pi=None):
+	##########################################
+	def render(self, value, pi=None):
 
-        if pi is not None:
-            fig, ax = plt.subplots(1, 2, figsize=(2*self.size, self.size), facecolor='none')
-        else:
-            fig, ax = plt.subplots(1, 1, figsize=(self.size, self.size), facecolor='none')
-            ax = [ax]  # para manter o mesmo padrão de acesso
+		if pi is not None:
+			fig, ax = plt.subplots(1, 2, figsize=(2*self.size, self.size), facecolor='none')
+		else:
+			fig, ax = plt.subplots(1, 1, figsize=(self.size, self.size), facecolor='none')
+			ax = [ax]  # para manter o mesmo padrão de acesso
 
-        ############################
-        # mapa de valor
-        sn.heatmap(
-            value,
-            annot=True,
-            fmt=".1f",
-            cmap="crest",
-            linewidths=1,
-            linecolor="black",
-            cbar=False,
-            square=True,
-            ax=ax[0]
-        )
-        ax[0].set_title(r"$V(s)$")
-        ax[0].tick_params(left=False, bottom=False)
-    
-        for spine in ax[0].spines.values():
-            spine.set_visible(False)
+		############################
+		# mapa de valor
+		sn.heatmap(
+			value,
+			annot=True,
+			fmt=".1f",
+			cmap="crest",
+			linewidths=1,
+			linecolor="black",
+			cbar=False,
+			square=True,
+			ax=ax[0]
+		)
+		ax[0].set_title(r"$V(s)$")
+		ax[0].tick_params(left=False, bottom=False)
+	
+		for spine in ax[0].spines.values():
+			spine.set_visible(False)
 
-        ############################
-        # Plota mapa da politica
-        if not (pi is None):
-            arrows = np.array([UP, RIGHT, DOWN, LEFT], dtype=object)
-            labels = arrows[pi].copy()
-    
-            for t in self.terminal_states:
-                labels[tuple(t)] = ""
-    
-            sn.heatmap(
-                value,
-                annot=labels,
-                fmt="",
-                cmap="crest",
-                linewidths=1,
-                linecolor="black",
-                cbar=False,
-                square=True,
-                ax=ax[1]
-            )
-            ax[1].set_title(r"$\pi(s)\approx\pi_*$")
-            ax[1].tick_params(left=False, bottom=False)
-    
-            for spine in ax[1].spines.values():
-                spine.set_visible(False)
+		############################
+		# Plota mapa da politica
+		if not (pi is None):
+			arrows = np.array([UP, RIGHT, DOWN, LEFT], dtype=object)
+			labels = arrows[pi].copy()
+	
+			# nao desenha seta nos estados terminais
+			for t in self.terminal_states:
+				labels[tuple(t)] = ""
+			
+			# nao coloca seta onde o valor for zero
+			labels[value[:] >= 0] = ""
+	
+			sn.heatmap(
+				value,
+				annot=labels,
+				fmt="",
+				cmap="crest",
+				linewidths=1,
+				linecolor="black",
+				cbar=False,
+				square=True,
+				ax=ax[1]
+			)
+			ax[1].set_title(r"$\pi(s)\approx\pi_*$")
+			ax[1].tick_params(left=False, bottom=False)
+	
+			for spine in ax[1].spines.values():
+				spine.set_visible(False)
 
-        fig.patch.set_alpha(0)
-        plt.tight_layout()
-        plt.show()
+		fig.patch.set_alpha(0)
+		plt.tight_layout()
+		plt.show()
