@@ -27,7 +27,8 @@ class Maze(gym.Env):
 					grid_size = 25, 
 					img = 'imgs/labirinto.png', 
 					alvo = np.array([9.5, 9.5]), 
-					render = False):
+					render = False,
+					method = None):
 
 		# salva o tamanho geometrico da imagem em metros
 		self.xlim = xlim
@@ -51,22 +52,28 @@ class Maze(gym.Env):
 		# alvo
 		self.alvo = alvo
 		
+		# method usado
+		self.method = method
+		
 		# renderizar
 		self.render_env = render
 		
-		# cria mapa
-		pygame.init()
-		pygame.display.set_mode((1, 1))  # Inicializa com uma janelinha mínima
-		self.init_2d(img)
-		pygame.quit()
-		
 		# Inicializa pygame se necessário
 		if self.render_env:
+			# cria mapa
+			pygame.init()
+			pygame.display.set_mode((1, 1))  # Inicializa com uma janelinha mínima
+		
+		self.init_2d(img)
+		
+		if self.render_env:
+			pygame.quit()
+			
 			pygame.init()
 			self.screen_size = (SCREEN_SIZE, SCREEN_SIZE)
 			self.screen = pygame.display.set_mode(self.screen_size)
 			self.clock = pygame.time.Clock()
-			pygame.display.set_caption("Labirinto")
+			pygame.display.set_caption(f"Labirinto ({self.method})" )
 		
 			# Converte o mapa para uma imagem pygame
 			mapa_norm = self.mapa.astype(np.uint8)  # inverte e escala pra 0-255
@@ -76,7 +83,7 @@ class Maze(gym.Env):
 			
 			# sprites
 			self.robot = pygame.image.load("imgs/robot.png").convert_alpha()
-			self.robot = pygame.transform.scale(self.robot, (15, 20))
+			self.robot = pygame.transform.scale(self.robot, (20, 25))
 
 	########################################
 	# ambientes em 2D
@@ -322,13 +329,13 @@ class Maze(gym.Env):
 		
 		# Desenha o robô
 		if not self.collision(self.p):
-			self.screen.blit(self.robot, self.world_to_screen(self.p))
+			self.screen.blit(self.robot, self.world_to_screen(self.p) - np.array([10, 12]))
 		else:
 			pygame.draw.rect(self.screen, (255, 0, 0), (*self.world_to_screen(self.p), robot_size, robot_size))
 			
 		# Atualiza a tela
 		pygame.display.flip()
-		self.clock.tick(30)  # FPS
+		self.clock.tick(24)  # FPS
 	 
 	########################################
 	def draw_arrow(self, color, start, end, width=2, head_size=3):
