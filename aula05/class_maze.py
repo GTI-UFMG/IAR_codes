@@ -7,6 +7,8 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 from functools import partial
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 import pygame
 
 ########################################
