@@ -69,6 +69,7 @@ class Car:
         
         if x is not None:
             self.p, self.v, self.a = x
+            self.v = np.max([0.0, self.v])
         else:
             self.p = -1.0*self.id*self.deltai # comeca com erro zero
             self.v = 0.0
@@ -88,7 +89,7 @@ class Car:
         # lider tem velocidade abaixo da pista
         if self.id == 0:
             # nao acelera ou freia mais que o permitido
-            if self.v <= -self.ENV['VELMAX']:
+            if self.v <= 0.0:
                 u = max(u, 0.0)
             if self.v >= self.ENV['VELMAX']:
                 u = min(u, 0.0)
@@ -131,6 +132,7 @@ class Car:
 
         # update de tempo
         self.t += self.dt
+        
         v1 = self.v
         a1 = self.getAccel(v1)
         v2 = self.v + 0.5*a1*self.dt
